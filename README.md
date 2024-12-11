@@ -9,9 +9,9 @@ Download the latest custom image (plain pico or picow versions both fine) from [
 Flash the Pico using the custom image
 
 ### Configure the scripts
-- Rename `config.py.example` to `config.py
+- Rename `config.py.example` to `config.py`
 - Add account details for adafruit.io & Weather Underground
-- Rename `./lib/secrets.py.example` to `secrets.py
+- Rename `./lib/secrets.py.example` to `secrets.py`
 - Add WiFi connection details
 
 
