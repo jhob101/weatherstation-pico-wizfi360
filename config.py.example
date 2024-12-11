@@ -1,0 +1,11 @@
+# Adafruit IO Configuration
+ADAFRUIT_IO_USERNAME = ""
+ADAFRUIT_IO_KEY = ""
+
+# http, https seemingly doesn't work with the WizFi360 AT command set
+AIO_BASE_URL = "http://io.adafruit.com/api/v2/"
+
+# Weather Underground settings
+WU_URL="http://rtupdate.wunderground.com/weatherstation/updateweatherstation.php"
+WU_STATION_ID=""
+WU_STATION_PWD=""
