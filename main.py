@@ -170,14 +170,14 @@ def main():
             # WizFi wifi seems a bit janky...
 
             # Send data to Weather Underground
-            #try:
-            #    connect_wizfi(wizfi)
-            #    time.sleep(2)  # Small delay between requests
-            #    led.value(1)
-            #    send_to_weather_underground(temperature, pressure, humidity)
-            #    led.value(0)
-            #except Exception as e:
-            #    print("Error in Weather Underground update:", e)
+            try:
+                connect_wizfi(wizfi)
+                time.sleep(2)  # Small delay between requests
+                led.value(1)
+                send_to_weather_underground(temperature, pressure, humidity)
+                led.value(0)
+            except Exception as e:
+                print("Error in Weather Underground update:", e)
 
             # Send data to Adafruit IO
             sensor_data = [
@@ -185,7 +185,7 @@ def main():
                 ('ppressure', pressure),
                 ('phumidity', humidity)
             ]
-            
+
             for feed_key, value in sensor_data:
                 try:
                     connect_wizfi(wizfi)
