@@ -1,10 +1,10 @@
 # weatherstation-pico-wizfi360
-Reads values from BME280 and send to Weather Underground &amp; adafruit.io
+Read values from BME280 and send to Weather Underground &amp; adafruit.io
 
 ## Installation
 
 ### Flash the Pico
-Download the latest custom image (plain pico or picow versions both fine) from [Pimoroni's GitHub](https://github.com/pimoroni/pimoroni-pico/releases/latest)
+Download the latest custom image (plain pico or pico version) from [Pimoroni's GitHub](https://github.com/pimoroni/pimoroni-pico/releases/latest)
 
 Flash the Pico using the custom image
 
@@ -14,4 +14,5 @@ Flash the Pico using the custom image
 - Rename `./lib/secrets.py.example` to `secrets.py`
 - Add WiFi connection details
 
-
+# Libraries used
+- [WizFi AT control](https://github.com/Wiznet/WizFi360-EVB-Pico-MicroPython)
