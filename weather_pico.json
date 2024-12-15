@@ -1,0 +1,11 @@
+{
+	"adafruit": {
+		"send":true,
+		"t":"temperature",
+		"p":"pressure",
+		"h":"humidity"
+	},
+	"wu": {
+		"send":true
+	}
+}

@@ -9,3 +9,5 @@ AIO_BASE_URL = "http://io.adafruit.com/api/v2/"
 WU_URL="http://rtupdate.wunderground.com/weatherstation/updateweatherstation.php"
 WU_STATION_ID=""
 WU_STATION_PWD=""
+
+SETTINGS_URL = 'http://192.168.x.x/weather_pico.json'
