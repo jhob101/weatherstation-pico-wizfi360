@@ -1,3 +1,4 @@
+import machine
 from machine import Pin, I2C
 import time
 import network
@@ -17,8 +18,7 @@ from config import (
     AIO_BASE_URL,
     WU_URL,
     WU_STATION_ID,
-    WU_STATION_PWD,
-    SETTINGS_URL
+    WU_STATION_PWD
 )
 
 i2c = I2C(0, sda=Pin(8), scl=Pin(9))
@@ -29,35 +29,44 @@ led = Pin(25, Pin.OUT)
 
 
 def connect_wifi():
-    """Connect to WiFi network"""
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if not wlan.isconnected():
-        print('Connecting to WiFi...')
-        wlan.connect(WIFI_SSID, WIFI_PASSWORD)
-        while not wlan.isconnected():
-            time.sleep(2)
-    print('WiFi connected!')
-    print('Network config:', wlan.ifconfig())
+    try:
+        """Connect to WiFi network"""
+        wlan = network.WLAN(network.STA_IF)
+        wlan.active(True)
+        if not wlan.isconnected():
+            print('Connecting to WiFi...')
+            wlan.connect(WIFI_SSID, WIFI_PASSWORD)
+            while not wlan.isconnected():
+                time.sleep(2)
+        print('WiFi connected!')
+        print('Network config:', wlan.ifconfig())
+        return True
+    except Exception as e:
+        print("Error connecting to WiFi:", e)
+        return False
 
 
 def init_wizfi():
-    debugflag = False
+    try:
+        debugflag = False
 
-    # WizFi360 configuration
-    PORT = 1
-    RX = 5
-    TX = 4
-    resetpin = 20
-    rtspin = False
+        # WizFi360 configuration
+        PORT = 1
+        RX = 5
+        TX = 4
+        resetpin = 20
+        rtspin = False
 
-    UART_Tx_BUFFER_LENGTH = 1024
-    UART_Rx_BUFFER_LENGTH = 1024 * 2
+        UART_Tx_BUFFER_LENGTH = 1024
+        UART_Rx_BUFFER_LENGTH = 1024 * 2
 
-    uart = machine.UART(PORT, 115200, tx=machine.Pin(TX), rx=machine.Pin(RX), txbuf=UART_Tx_BUFFER_LENGTH, rxbuf=UART_Rx_BUFFER_LENGTH)
-    wizfi = WizFi_ATcontrol(uart, 115200, reset_pin=resetpin, rts_pin=rtspin, debug=debugflag)
+        uart = machine.UART(PORT, 115200, tx=machine.Pin(TX), rx=machine.Pin(RX), txbuf=UART_Tx_BUFFER_LENGTH, rxbuf=UART_Rx_BUFFER_LENGTH)
+        wizfi = WizFi_ATcontrol(uart, 115200, reset_pin=resetpin, rts_pin=rtspin, debug=debugflag)
 
-    return wizfi
+        return wizfi
+    except Exception as e:
+        print("Error initializing WizFi360:", e)
+        return False
 
 
 def connect_wizfi(wizfi):
@@ -69,16 +78,24 @@ def connect_wizfi(wizfi):
 
     # print("Resetting WizFi360 module")
     # wizfi.hard_reset()
+    try:
+        disconnect_wizfi(wizfi)
 
-    disconnect_wizfi(wizfi)
-
-    print("Checking connection...")
-    while not wizfi.is_connected:
-        print("Connecting to AP...")
-        wizfi.connect(secrets)
-    requests.set_socket(socket, wizfi)
-    print("Connected!")
-    return True
+        print("Checking connection...")
+        if not wizfi.is_connected:
+            print('Connecting to WiFi...')
+            while not wizfi.is_connected:
+                try:
+                    wizfi.connect(secrets)
+                except Exception as e:
+                    print("Error connecting to WizFi360:", e)
+                    time.sleep(2)
+        requests.set_socket(socket, wizfi)
+        print("Connected!")
+        return True
+    except Exception as e:
+        print("Error connecting to WizFi360:", e)
+        return False
 
 
 def disconnect_wizfi(wizfi):
@@ -171,8 +188,9 @@ def send_to_weather_underground(temperature, pressure, humidity):
 
 
 def read_weather_json():
+    url = 'http://80.229.8.88/weather_pico.json'
     try:
-        response = requests.get(SETTINGS_URL)
+        response = requests.get(url)
 
         if response.status_code == 200:
             settings = response.json()
@@ -182,13 +200,16 @@ def read_weather_json():
             print(f"Failed to retrieve JSON. Status code: {response.status_code}")
     except Exception as e:
         print("Failed to retrieve JSON: ", e)
+
     try:
+        print("Getting local weather_pico.json: ")
         with open('weather_pico.json') as f:
             settings = json.load(f)
             return settings
     except OSError:
         print("Failed to read local weather_pico.json")
         return None
+
 
 def main():
     wizfi = init_wizfi()
@@ -197,67 +218,78 @@ def main():
     time.sleep(2)  # Small delay between requests
 
     while True:
-        current_time = time.time()
-        sleep_time = 300 - (current_time % 300)
-        led.value(1)
-        settings = read_weather_json()
-        print(settings)
-        led.value(0)
+        try:
+            current_time = time.time()
+            sleep_time = 300 - (current_time % 300)
+            led.value(1)
+            settings = read_weather_json()
+            print(settings)
+            led.value(0)
 
-        if settings:
-            wu_send = settings.get('wu', {}).get('send', False)
-            adafruit_send = settings.get('adafruit', {}).get('send', False)
-            adafruit_t = settings.get('adafruit', {}).get('t', None)
-            adafruit_p = settings.get('adafruit', {}).get('p', None)
-            adafruit_h = settings.get('adafruit', {}).get('h', None)
+            wu_send = False
+            adafruit_send = False
+            adafruit_t = None
+            adafruit_p = None
+            adafruit_h = None
 
-        # Read sensor data
-        led.value(1)
-        temperature, pressure, humidity = read_sensor()
-        led.value(0)
+            if settings:
+                wu_send = settings.get('wu', {}).get('send', False)
+                adafruit_send = settings.get('adafruit', {}).get('send', False)
+                adafruit_t = settings.get('adafruit', {}).get('t', None)
+                adafruit_p = settings.get('adafruit', {}).get('p', None)
+                adafruit_h = settings.get('adafruit', {}).get('h', None)
 
-        if all((temperature, pressure, humidity)):
-            print(f'{temperature:05.1f}°C {pressure:05.1f}hPa {humidity:05.1f}%')
+            # Read sensor data
+            led.value(1)
+            temperature, pressure, humidity = read_sensor()
+            led.value(0)
 
-            # Weird stuff happens if the connection isn't re-established with each request.
-            # WizFi wifi seems a bit janky...
+            if all((temperature, pressure, humidity)):
+                print(f'{temperature:05.1f}°C {pressure:05.1f}hPa {humidity:05.1f}%')
 
-            if wu_send:
-                # Send data to Weather Underground
-                try:
-                    connect_wizfi(wizfi)
-                    time.sleep(2)  # Small delay between requests
-                    led.value(1)
-                    send_to_weather_underground(temperature, pressure, humidity)
-                    led.value(0)
-                except Exception as e:
-                    print("Error in Weather Underground update:", e)
+                # Weird stuff happens if the connection isn't re-established with each request.
+                # WizFi wifi seems a bit janky...
 
-            if adafruit_send:
-                # Send data to Adafruit IO
-                sensor_data = [
-                    (adafruit_t, temperature),
-                    (adafruit_p, pressure),
-                    (adafruit_h, humidity)
-                ]
-
-                for feed_key, value in sensor_data:
+                if wu_send:
+                    # Send data to Weather Underground
                     try:
                         connect_wizfi(wizfi)
                         time.sleep(2)  # Small delay between requests
                         led.value(1)
-                        send_to_adafruit(feed_key, value)
+                        send_to_weather_underground(temperature, pressure, humidity)
                         led.value(0)
                     except Exception as e:
-                        print(f"Error in Adafruit IO update for {feed_key}:", e)
+                        print("Error in Weather Underground update:", e)
 
-        disconnect_wizfi(wizfi)
-        print("Waiting...")
+                if adafruit_send:
+                    # Send data to Adafruit IO
+                    sensor_data = [
+                        (adafruit_t, temperature),
+                        (adafruit_p, pressure),
+                        (adafruit_h, humidity)
+                    ]
 
-        if sleep_time < 0:
-            sleep_time = 1
+                    for feed_key, value in sensor_data:
+                        try:
+                            connect_wizfi(wizfi)
+                            time.sleep(2)  # Small delay between requests
+                            led.value(1)
+                            send_to_adafruit(feed_key, value)
+                            led.value(0)
+                        except Exception as e:
+                            print(f"Error in Adafruit IO update for {feed_key}:", e)
 
-        time.sleep(sleep_time)
+            disconnect_wizfi(wizfi)
+            print("Waiting...")
+
+            if sleep_time < 0:
+                sleep_time = 1
+
+            time.sleep(sleep_time)
+        except Exception as e:
+            print("Error in main loop:", e)
+            time.sleep(10)
+            # machine.reset()
 
 
 if __name__ == '__main__':
